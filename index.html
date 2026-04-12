@@ -579,6 +579,252 @@
       a.click();
       URL.revokeObjectURL(url);
     });
+
+    // ========== CHATBOT WIDGET ==========
+    const LEAD_URL = API_URL.replace('/extract', '/lead');
+    const chatSteps = [
+      { key: 'greet', bot: "Hi! I'm here to help you explore Chitralekh.ai. Would you like to learn more or request a demo?", options: ['Request a demo', 'Learn more', 'Talk to sales'] },
+      { key: 'name', bot: "Great! What's your name?" },
+      { key: 'email', bot: "Nice to meet you, {name}! What's your work email?" },
+      { key: 'company', bot: "And which company are you with?" },
+      { key: 'use_case', bot: "What type of documents are you looking to process? (e.g. invoices, contracts, medical records, land records...)" },
+      { key: 'done', bot: "Thanks, {name}! Our team will reach out to {email} shortly. In the meantime, try uploading a document above to see Chitralekh in action!" },
+    ];
+    let chatStep = 0;
+    let chatData = {};
+    let chatOpen = false;
+
+    // Build chat widget DOM
+    const chatFab = document.createElement('button');
+    chatFab.id = 'chatFab';
+    chatFab.setAttribute('aria-label', 'Open chat');
+    document.body.appendChild(chatFab);
+
+    const chatSvgOpen = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
+    const chatSvgClose = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
+
+    const chatWindow = document.createElement('div');
+    chatWindow.id = 'chatWindow';
+    chatWindow.className = 'hidden';
+    document.body.appendChild(chatWindow);
+
+    // Chat header
+    const chatHeader = document.createElement('div');
+    chatHeader.id = 'chatHeader';
+    const chatHeaderTitle = document.createElement('div');
+    const chatH = document.createElement('strong');
+    chatH.textContent = 'Chitralekh.ai';
+    const chatSub = document.createElement('div');
+    chatSub.style.cssText = 'font-size:12px;color:var(--fg-muted);margin-top:2px';
+    chatSub.textContent = 'Typically replies instantly';
+    chatHeaderTitle.appendChild(chatH);
+    chatHeaderTitle.appendChild(chatSub);
+    chatHeader.appendChild(chatHeaderTitle);
+    chatWindow.appendChild(chatHeader);
+
+    // Messages area
+    const chatMessages = document.createElement('div');
+    chatMessages.id = 'chatMessages';
+    chatWindow.appendChild(chatMessages);
+
+    // Input area
+    const chatInputWrap = document.createElement('div');
+    chatInputWrap.id = 'chatInputWrap';
+    const chatInput = document.createElement('input');
+    chatInput.type = 'text';
+    chatInput.id = 'chatInput';
+    chatInput.placeholder = 'Type a message...';
+    const chatSend = document.createElement('button');
+    chatSend.id = 'chatSend';
+    chatSend.textContent = 'Send';
+    chatInputWrap.appendChild(chatInput);
+    chatInputWrap.appendChild(chatSend);
+    chatWindow.appendChild(chatInputWrap);
+
+    // Options area (for buttons)
+    const chatOptions = document.createElement('div');
+    chatOptions.id = 'chatOptions';
+    chatWindow.appendChild(chatOptions);
+
+    function addBotMsg(text) {
+      const div = document.createElement('div');
+      div.className = 'chat-msg bot';
+      div.textContent = text;
+      chatMessages.appendChild(div);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    function addUserMsg(text) {
+      const div = document.createElement('div');
+      div.className = 'chat-msg user';
+      div.textContent = text;
+      chatMessages.appendChild(div);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    function showOptions(opts) {
+      chatOptions.replaceChildren();
+      chatInputWrap.classList.add('hidden');
+      for (const opt of opts) {
+        const btn = document.createElement('button');
+        btn.className = 'chat-option-btn';
+        btn.textContent = opt;
+        btn.addEventListener('click', () => {
+          addUserMsg(opt);
+          chatOptions.replaceChildren();
+          chatInputWrap.classList.remove('hidden');
+          chatStep = 1;
+          showStep();
+        });
+        chatOptions.appendChild(btn);
+      }
+    }
+    function showStep() {
+      const step = chatSteps[chatStep];
+      if (!step) return;
+      let msg = step.bot;
+      msg = msg.replace('{name}', chatData.name || '');
+      msg = msg.replace('{email}', chatData.email || '');
+      setTimeout(() => {
+        addBotMsg(msg);
+        if (step.options) {
+          showOptions(step.options);
+        } else if (step.key === 'done') {
+          chatInputWrap.classList.add('hidden');
+          // Submit lead
+          fetch(LEAD_URL, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(chatData)
+          }).catch(() => {});
+        } else {
+          chatInput.focus();
+        }
+      }, 400);
+    }
+    function handleChatSubmit() {
+      const val = chatInput.value.trim();
+      if (!val) return;
+      addUserMsg(val);
+      chatInput.value = '';
+      const step = chatSteps[chatStep];
+      if (step) {
+        chatData[step.key] = val;
+        // Validate email
+        if (step.key === 'email' && !val.includes('@')) {
+          addBotMsg("That doesn't look like a valid email. Could you try again?");
+          return;
+        }
+      }
+      chatStep++;
+      showStep();
+    }
+    chatSend.addEventListener('click', handleChatSubmit);
+    chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') handleChatSubmit(); });
+
+    // FAB toggle
+    chatFab.addEventListener('click', () => {
+      chatOpen = !chatOpen;
+      chatWindow.classList.toggle('hidden', !chatOpen);
+      if (chatOpen && chatMessages.children.length === 0) {
+        showStep();
+      }
+    });
+
+    // Render FAB icon (use DOM approach)
+    function updateFabIcon() {
+      chatFab.replaceChildren();
+      const tmp = document.createElement('span');
+      tmp.style.display = 'flex';
+      // Create SVG via namespace
+      const ns = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(ns, 'svg');
+      svg.setAttribute('width','24');
+      svg.setAttribute('height','24');
+      svg.setAttribute('viewBox','0 0 24 24');
+      svg.setAttribute('fill','none');
+      svg.setAttribute('stroke','white');
+      svg.setAttribute('stroke-width','2');
+      svg.setAttribute('stroke-linecap','round');
+      svg.setAttribute('stroke-linejoin','round');
+      const path = document.createElementNS(ns, 'path');
+      path.setAttribute('d','M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z');
+      svg.appendChild(path);
+      chatFab.appendChild(svg);
+    }
+    updateFabIcon();
   </script>
+
+  <style>
+    #chatFab {
+      position:fixed; bottom:24px; right:24px; width:56px; height:56px;
+      border-radius:50%; border:none; cursor:pointer; z-index:1000;
+      background:linear-gradient(135deg, var(--brand-cyan), var(--brand-purple));
+      box-shadow:0 4px 20px rgba(0,208,240,0.3);
+      display:flex; align-items:center; justify-content:center;
+      transition:transform 0.2s, box-shadow 0.2s;
+    }
+    #chatFab:hover { transform:scale(1.08); box-shadow:0 6px 28px rgba(0,208,240,0.4); }
+
+    #chatWindow {
+      position:fixed; bottom:92px; right:24px; width:380px; max-height:520px;
+      border-radius:16px; border:1px solid var(--border);
+      background:var(--bg-card); z-index:1000;
+      display:flex; flex-direction:column; overflow:hidden;
+      box-shadow:0 8px 40px rgba(0,0,0,0.5);
+    }
+    @media(max-width:480px) { #chatWindow { right:8px; left:8px; width:auto; bottom:80px; } }
+
+    #chatHeader {
+      padding:16px 20px; border-bottom:1px solid var(--border);
+      background:linear-gradient(90deg, rgba(0,208,240,0.08), rgba(128,64,224,0.08));
+    }
+    #chatHeader strong { font-size:15px; }
+
+    #chatMessages {
+      flex:1; overflow-y:auto; padding:16px; min-height:200px; max-height:320px;
+      display:flex; flex-direction:column; gap:10px;
+    }
+
+    .chat-msg {
+      max-width:85%; padding:10px 14px; border-radius:12px;
+      font-size:14px; line-height:1.5; word-wrap:break-word;
+    }
+    .chat-msg.bot {
+      align-self:flex-start; background:var(--bg-accent);
+      border-bottom-left-radius:4px; color:var(--fg);
+    }
+    .chat-msg.user {
+      align-self:flex-end;
+      background:linear-gradient(135deg, var(--brand-cyan), var(--brand-purple));
+      border-bottom-right-radius:4px; color:white;
+    }
+
+    #chatInputWrap {
+      display:flex; padding:12px; gap:8px; border-top:1px solid var(--border);
+    }
+    #chatInput {
+      flex:1; background:var(--bg-accent); border:1px solid var(--border);
+      border-radius:8px; padding:8px 12px; color:var(--fg); font-size:14px;
+      font-family:inherit; outline:none;
+    }
+    #chatInput:focus { border-color:var(--brand-cyan); }
+    #chatSend {
+      background:linear-gradient(90deg, var(--brand-cyan), var(--brand-purple));
+      color:white; border:none; border-radius:8px; padding:8px 16px;
+      font-size:14px; font-weight:500; cursor:pointer; font-family:inherit;
+    }
+    #chatSend:hover { opacity:0.9; }
+
+    #chatOptions {
+      display:flex; flex-wrap:wrap; gap:8px; padding:0 12px 12px;
+    }
+    .chat-option-btn {
+      background:transparent; border:1px solid var(--brand-cyan);
+      color:var(--brand-cyan); border-radius:999px; padding:6px 16px;
+      font-size:13px; cursor:pointer; font-family:inherit; transition:all 0.2s;
+    }
+    .chat-option-btn:hover {
+      background:var(--brand-cyan); color:var(--bg);
+    }
+  </style>
 </body>
 </html>
