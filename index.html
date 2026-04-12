@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chitralekh.ai — Document Intelligence Demo</title>
+  <meta name="description" content="Upload any document and get structured data instantly. Powered by Vision Language Models. Built by Xentovia.ai.">
+  <meta property="og:title" content="Chitralekh.ai — Document Intelligence Demo">
+  <meta property="og:description" content="Upload any document and get structured data instantly. Powered by Vision Language Models.">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="logo.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a14; --bg-card: #12121f; --bg-accent: #181830;
+      --fg: #e8e8f0; --fg-muted: #7888a8; --border: #222240;
+      --brand-cyan: #00d0f0; --brand-purple: #8040e0; --brand-pink: #d020d0;
+      --radius: 12px;
+    }
+    body { font-family:'Inter',system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--fg); min-height:100vh; display:flex; flex-direction:column; -webkit-font-smoothing:antialiased; }
+    a { color:inherit; text-decoration:none; }
+    .header { border-bottom:1px solid var(--border); background:rgba(10,10,20,0.85); backdrop-filter:blur(12px); position:sticky; top:0; z-index:50; }
+    .header-inner { max-width:1200px; margin:0 auto; padding:0 24px; height:64px; display:flex; align-items:center; justify-content:space-between; }
+    .logo-group { display:flex; align-items:center; gap:12px; }
+    .logo-group img { width:36px; height:36px; border-radius:8px; }
+    .logo-text { font-size:18px; font-weight:600; letter-spacing:-0.02em; }
+    .logo-text .ai { background:linear-gradient(90deg,var(--brand-cyan),var(--brand-pink)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .header-right { display:flex; align-items:center; gap:16px; }
+    .badge { font-size:12px; padding:4px 12px; border-radius:999px; border:1px solid rgba(0,208,240,0.3); color:var(--brand-cyan); font-weight:500; }
+    .by-link { font-size:14px; color:var(--fg-muted); transition:color 0.2s; }
+    .by-link:hover { color:var(--fg); }
+    main { max-width:1200px; margin:0 auto; padding:48px 24px; flex:1; width:100%; }
+    .hero { text-align:center; margin-bottom:64px; }
+    .hero-pill { display:inline-flex; align-items:center; gap:8px; padding:6px 16px; border-radius:999px; border:1px solid rgba(0,208,240,0.2); background:rgba(0,208,240,0.05); font-size:14px; color:var(--brand-cyan); margin-bottom:24px; }
+    .hero h1 { font-size:clamp(32px,5vw,48px); font-weight:700; letter-spacing:-0.03em; line-height:1.15; margin-bottom:16px; }
+    .hero h1 .gradient { background:linear-gradient(90deg,var(--brand-cyan),var(--brand-purple),var(--brand-pink)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .hero p { font-size:18px; color:var(--fg-muted); max-width:640px; margin:0 auto; line-height:1.6; }
+    .demo-area { display:grid; gap:32px; max-width:640px; margin:0 auto; transition:all 0.3s; }
+    .demo-area.has-result { max-width:1200px; grid-template-columns:1fr 1fr; }
+    @media(max-width:768px) { .demo-area.has-result { grid-template-columns:1fr; } }
+    .card { border:1px solid var(--border); border-radius:var(--radius); background:var(--bg-card); overflow:hidden; }
+    .card-header { padding:20px 24px 16px; display:flex; align-items:center; justify-content:space-between; }
+    .card-title { font-size:16px; font-weight:600; display:flex; align-items:center; gap:8px; }
+    .card-title svg { color:var(--brand-cyan); }
+    .card-content { padding:0 24px 24px; }
+    .upload-zone { border:2px dashed var(--border); border-radius:var(--radius); padding:48px 24px; text-align:center; cursor:pointer; transition:all 0.2s; display:block; }
+    .upload-zone:hover,.upload-zone.drag-over { border-color:var(--brand-cyan); background:rgba(0,208,240,0.03); }
+    .upload-zone input { display:none; }
+    .upload-icon { width:64px; height:64px; margin:0 auto 16px; border-radius:16px; background:rgba(0,208,240,0.1); display:flex; align-items:center; justify-content:center; }
+    .upload-icon svg { width:28px; height:28px; color:var(--brand-cyan); }
+    .upload-zone .title { font-size:16px; font-weight:500; margin-bottom:4px; }
+    .upload-zone .subtitle { font-size:14px; color:var(--fg-muted); }
+    .preview-wrap { position:relative; border-radius:var(--radius); overflow:hidden; border:1px solid var(--border); background:rgba(0,0,0,0.2); }
+    .preview-wrap img { width:100%; max-height:500px; object-fit:contain; display:block; }
+    .close-btn { position:absolute; top:12px; right:12px; width:32px; height:32px; border-radius:50%; background:rgba(0,0,0,0.6); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background 0.2s; }
+    .close-btn:hover { background:rgba(0,0,0,0.8); }
+    .close-btn svg { width:16px; height:16px; color:white; }
+    .file-info { display:flex; align-items:center; justify-content:space-between; font-size:14px; color:var(--fg-muted); margin-top:12px; }
+    .file-info .name { display:flex; align-items:center; gap:8px; }
+    .file-info .name span { max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:0 20px; height:44px; border-radius:8px; font-size:14px; font-weight:500; border:none; cursor:pointer; transition:all 0.2s; font-family:inherit; }
+    .btn:disabled { opacity:0.5; cursor:not-allowed; }
+    .btn-primary { background:linear-gradient(90deg,var(--brand-cyan),var(--brand-purple),var(--brand-pink)); color:white; width:100%; height:48px; font-size:16px; }
+    .btn-primary:hover:not(:disabled) { opacity:0.9; }
+    .btn-outline { background:transparent; color:var(--fg); border:1px solid var(--border); }
+    .btn-outline:hover { background:var(--bg-accent); }
+    .btn-sm { height:32px; padding:0 12px; font-size:13px; }
+    .btn svg { width:16px; height:16px; }
+    .progress-bar { width:100%; height:6px; background:var(--bg-accent); border-radius:3px; overflow:hidden; margin-top:12px; }
+    .progress-fill { height:100%; background:linear-gradient(90deg,var(--brand-cyan),var(--brand-purple)); border-radius:3px; transition:width 0.3s ease; }
+    .progress-text { font-size:12px; color:var(--fg-muted); text-align:center; margin-top:8px; }
+    .error-msg { margin-top:16px; padding:12px 16px; border-radius:8px; border:1px solid rgba(239,68,68,0.3); background:rgba(239,68,68,0.05); color:#f87171; font-size:14px; display:flex; align-items:center; gap:8px; }
+    .tabs-list { display:flex; border-bottom:1px solid var(--border); margin-bottom:20px; }
+    .tab-btn { flex:1; padding:10px 0; font-size:14px; font-weight:500; color:var(--fg-muted); background:none; border:none; border-bottom:2px solid transparent; cursor:pointer; transition:all 0.2s; font-family:inherit; }
+    .tab-btn:hover { color:var(--fg); }
+    .tab-btn.active { color:var(--brand-cyan); border-bottom-color:var(--brand-cyan); }
+    .tab-content { display:none; }
+    .tab-content.active { display:block; }
+    .result-badge { display:inline-block; padding:4px 12px; border-radius:999px; font-size:12px; font-weight:500; border:1px solid; }
+    .badge-type { border-color:rgba(0,208,240,0.3); color:var(--brand-cyan); }
+    .badge-lang { border-color:var(--border); color:var(--fg-muted); }
+    .badge-conf-high { border-color:rgba(34,197,94,0.3); color:#4ade80; background:rgba(34,197,94,0.1); }
+    .badge-conf-medium { border-color:rgba(234,179,8,0.3); color:#facc15; background:rgba(234,179,8,0.1); }
+    .badge-conf-low { border-color:rgba(239,68,68,0.3); color:#f87171; background:rgba(239,68,68,0.1); }
+    .fields-label { font-size:12px; font-weight:500; color:var(--fg-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px; }
+    .fields-table { border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+    .field-row { display:flex; padding:10px 16px; font-size:14px; }
+    .field-row:nth-child(even) { background:rgba(24,24,48,0.5); }
+    .field-key { width:35%; flex-shrink:0; font-weight:500; color:var(--fg-muted); }
+    .field-val { color:var(--fg); }
+    .raw-block { border:1px solid var(--border); border-radius:8px; background:var(--bg-accent); padding:16px; max-height:400px; overflow:auto; font-family:'SF Mono','Fira Code',monospace; font-size:12px; line-height:1.6; white-space:pre-wrap; color:rgba(232,232,240,0.8); }
+    .data-table { width:100%; border-collapse:collapse; font-size:14px; }
+    .data-table th { text-align:left; padding:8px 16px; background:var(--bg-accent); color:var(--fg-muted); font-weight:500; }
+    .data-table td { padding:8px 16px; }
+    .data-table tr:nth-child(even) td { background:rgba(24,24,48,0.3); }
+    .table-wrap { border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+    .issue-item { font-size:14px; color:#facc15; display:flex; align-items:flex-start; gap:8px; margin-bottom:6px; }
+    .issue-item svg { width:14px; height:14px; margin-top:3px; flex-shrink:0; }
+    .usage-bar { display:flex; justify-content:space-between; font-size:12px; color:var(--fg-muted); padding-top:12px; margin-top:16px; border-top:1px solid var(--border); }
+    .features { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; margin-top:80px; }
+    @media(max-width:768px) { .features { grid-template-columns:1fr; } }
+    .feature-card { border:1px solid rgba(34,34,64,0.5); border-radius:var(--radius); background:rgba(18,18,31,0.5); padding:24px; }
+    .feature-icon { width:40px; height:40px; border-radius:8px; background:rgba(0,208,240,0.1); display:flex; align-items:center; justify-content:center; margin-bottom:12px; }
+    .feature-icon svg { width:20px; height:20px; color:var(--brand-cyan); }
+    .feature-card h3 { font-size:15px; font-weight:600; margin-bottom:4px; }
+    .feature-card p { font-size:14px; color:var(--fg-muted); line-height:1.5; }
+    .cta-section { margin-top:80px; text-align:center; padding-bottom:48px; }
+    .cta-card { border:1px solid rgba(0,208,240,0.15); border-radius:var(--radius); background:linear-gradient(180deg,rgba(0,208,240,0.04),transparent); max-width:640px; margin:0 auto; padding:40px 32px; }
+    .cta-card h2 { font-size:24px; font-weight:700; margin-bottom:8px; }
+    .cta-card p { color:var(--fg-muted); margin-bottom:24px; }
+    .cta-btns { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+    .cta-btns .btn { height:44px; padding:0 24px; }
+    .footer { border-top:1px solid rgba(34,34,64,0.5); padding:24px 0; }
+    .footer-inner { max-width:1200px; margin:0 auto; padding:0 24px; display:flex; align-items:center; justify-content:space-between; font-size:14px; color:var(--fg-muted); }
+    .footer-inner .limit { font-size:12px; }
+    .hidden { display:none !important; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .spinner { animation:spin 1s linear infinite; }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo-group">
+        <img src="logo.png" alt="Xentovia">
+        <span class="logo-text">Chitralekh<span class="ai">.ai</span></span>
+      </div>
+      <div class="header-right">
+        <span class="badge">Enterprise Demo</span>
+        <a href="https://xentovia.ai" target="_blank" rel="noopener noreferrer" class="by-link">by Xentovia.ai</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-pill">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/></svg>
+        Powered by Vision Language Models
+      </div>
+      <h1>Upload any document.<br><span class="gradient">Get structured data. Instantly.</span></h1>
+      <p>See how Chitralekh.ai extracts, structures, and validates data from any document &mdash; invoices, contracts, IDs, handwritten notes, and more.</p>
+    </section>
+
+    <div id="demoArea" class="demo-area">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
+            <span id="uploadTitle">Upload Document</span>
+          </div>
+          <span id="confBadge" class="result-badge hidden"></span>
+        </div>
+        <div class="card-content">
+          <label id="uploadZone" class="upload-zone">
+            <input id="fileInput" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
+            <div class="upload-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg></div>
+            <div class="title">Drop your document here</div>
+            <div class="subtitle">or click to browse &middot; PNG, JPEG, WebP up to 10MB</div>
+          </label>
+          <div id="previewSection" class="hidden">
+            <div class="preview-wrap">
+              <img id="previewImg" alt="Uploaded document">
+              <button id="closeBtn" class="close-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+            </div>
+            <div class="file-info">
+              <div class="name">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8l6 6v12a2 2 0 0 1-2 2z"/></svg>
+                <span id="fileName"></span>
+                <span id="fileSize" style="font-size:12px"></span>
+              </div>
+            </div>
+            <button id="extractBtn" class="btn btn-primary" style="margin-top:16px">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/></svg>
+              Extract Data
+            </button>
+            <div id="progressWrap" class="hidden">
+              <div class="progress-bar"><div id="progressFill" class="progress-fill" style="width:0%"></div></div>
+              <div class="progress-text">AI is analyzing your document...</div>
+            </div>
+          </div>
+          <div id="errorMsg" class="error-msg hidden">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span id="errorText"></span>
+          </div>
+        </div>
+      </div>
+
+      <div id="resultsPanel" class="card hidden">
+        <div class="card-header">
+          <div class="card-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/></svg>
+            Extracted Data
+          </div>
+          <div style="display:flex;gap:8px">
+            <button id="copyBtn" class="btn btn-outline btn-sm">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+              Copy
+            </button>
+            <button id="dlBtn" class="btn btn-outline btn-sm">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 17V3"/><path d="m6 11 6 6 6-6"/><path d="M19 21H5"/></svg>
+              JSON
+            </button>
+          </div>
+        </div>
+        <div class="card-content">
+          <div class="tabs-list">
+            <button class="tab-btn active" data-tab="structured">Structured</button>
+            <button class="tab-btn" data-tab="tables">Tables</button>
+            <button class="tab-btn" data-tab="json">Raw JSON</button>
+          </div>
+          <div id="tab-structured" class="tab-content active"></div>
+          <div id="tab-tables" class="tab-content"></div>
+          <div id="tab-json" class="tab-content"></div>
+          <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+            <button id="resetBtn" class="btn btn-outline" style="width:100%">Try Another Document</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <section class="features">
+      <div class="feature-card">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8l6 6v12a2 2 0 0 1-2 2z"/><path d="M14 2v6h6"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></div>
+        <h3>Any Document Type</h3>
+        <p>Invoices, contracts, IDs, medical records, handwritten notes, land records &mdash; all supported.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/></svg></div>
+        <h3>VLM-Native Extraction</h3>
+        <p>No traditional OCR. Vision Language Models understand layout, context, and meaning.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg></div>
+        <h3>Enterprise Ready</h3>
+        <p>SOC 2 compliant processing. Your documents are never stored or used for training.</p>
+      </div>
+    </section>
+
+    <section class="cta-section">
+      <div class="cta-card">
+        <h2>Ready for production?</h2>
+        <p>Integrate Chitralekh.ai into your workflow with our API. Process thousands of documents at scale.</p>
+        <div class="cta-btns">
+          <button class="btn btn-primary" style="width:auto">Request API Access <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg></button>
+          <button class="btn btn-outline">Talk to Sales</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <span>&copy; 2026 Xentovia.ai &middot; Chitralekh.ai</span>
+      <span class="limit">Demo limited to 5 extractions/hour per session</span>
+    </div>
+  </footer>
+
+  <script>
+    const API_URL = 'http://148.113.35.130:3000/api/extract';
+    const $ = (s) => document.getElementById(s);
+    const demoArea=$('demoArea'), uploadZone=$('uploadZone'), fileInput=$('fileInput'),
+      previewSection=$('previewSection'), previewImg=$('previewImg'), closeBtn=$('closeBtn'),
+      fileNameEl=$('fileName'), fileSizeEl=$('fileSize'), extractBtn=$('extractBtn'),
+      progressWrap=$('progressWrap'), progressFill=$('progressFill'),
+      errorMsg=$('errorMsg'), errorText=$('errorText'), resultsPanel=$('resultsPanel'),
+      uploadTitle=$('uploadTitle'), confBadge=$('confBadge'),
+      copyBtn=$('copyBtn'), dlBtn=$('dlBtn'), resetBtn=$('resetBtn');
+
+    let currentFile=null, currentBase64=null, currentResult=null, progInterval=null;
+
+    // Usage tracking via localStorage fingerprint
+    function getUsage() {
+      try {
+        const d = JSON.parse(localStorage.getItem('cl_usage')||'{}');
+        if (d.r && Date.now() > d.r) return {c:0,r:0};
+        return d;
+      } catch { return {c:0,r:0}; }
+    }
+    function recordUsage() {
+      const u = getUsage();
+      u.c = (u.c||0)+1;
+      if (!u.r) u.r = Date.now()+3600000;
+      localStorage.setItem('cl_usage', JSON.stringify(u));
+    }
+    function canUse() { return (getUsage().c||0) < 5; }
+
+    function fileToBase64(file) {
+      return new Promise((res,rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result);
+        r.onerror = rej;
+        r.readAsDataURL(file);
+      });
+    }
+
+    function showError(msg) { errorText.textContent=msg; errorMsg.classList.remove('hidden'); }
+    function hideError() { errorMsg.classList.add('hidden'); }
+
+    async function handleFile(file) {
+      const ok = ['image/png','image/jpeg','image/gif','image/webp'];
+      if (!ok.includes(file.type)) { showError('Please upload a PNG, JPEG, GIF, or WebP image.'); return; }
+      if (file.size > 10*1024*1024) { showError('File too large. Maximum size is 10MB.'); return; }
+      currentFile = file;
+      hideError();
+      const dataUrl = await fileToBase64(file);
+      currentBase64 = dataUrl.split(',')[1];
+      previewImg.src = dataUrl;
+      fileNameEl.textContent = file.name;
+      fileSizeEl.textContent = '(' + Math.round(file.size/1024) + ' KB)';
+      uploadZone.classList.add('hidden');
+      previewSection.classList.remove('hidden');
+      extractBtn.classList.remove('hidden');
+      progressWrap.classList.add('hidden');
+    }
+
+    fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+    uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+    uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+    uploadZone.addEventListener('drop', e => { e.preventDefault(); uploadZone.classList.remove('drag-over'); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+
+    function reset() {
+      currentFile=null; currentBase64=null; currentResult=null; fileInput.value='';
+      uploadZone.classList.remove('hidden'); previewSection.classList.add('hidden');
+      resultsPanel.classList.add('hidden'); demoArea.classList.remove('has-result');
+      uploadTitle.textContent='Upload Document'; confBadge.classList.add('hidden');
+      extractBtn.classList.remove('hidden'); progressWrap.classList.add('hidden');
+      hideError(); progressFill.style.width='0%';
+    }
+    closeBtn.addEventListener('click', reset);
+    resetBtn.addEventListener('click', reset);
+
+    extractBtn.addEventListener('click', async () => {
+      if (!currentFile || !currentBase64) return;
+      if (!canUse()) {
+        const u=getUsage(), m=Math.ceil((u.r-Date.now())/60000);
+        showError('Rate limit reached. You can make 5 requests per hour. Try again in '+m+' minutes.');
+        return;
+      }
+      extractBtn.classList.add('hidden');
+      progressWrap.classList.remove('hidden');
+      hideError();
+      let prog=10;
+      progressFill.style.width=prog+'%';
+      progInterval = setInterval(() => { prog=Math.min(prog+3,85); progressFill.style.width=prog+'%'; }, 400);
+
+      try {
+        const ctrl = new AbortController();
+        const tout = setTimeout(() => ctrl.abort(), 60000);
+        progressFill.style.width='25%';
+
+        const res = await fetch(API_URL, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({imageBase64:currentBase64, mediaType:currentFile.type}),
+          signal: ctrl.signal
+        });
+        clearTimeout(tout);
+        clearInterval(progInterval);
+        progressFill.style.width='95%';
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error||'Extraction failed');
+
+        currentResult = data;
+        recordUsage();
+        progressFill.style.width='100%';
+        renderResults(data);
+        demoArea.classList.add('has-result');
+        resultsPanel.classList.remove('hidden');
+        uploadTitle.textContent='Source Document';
+        progressWrap.classList.add('hidden');
+        const conf = data.result.confidence||'low';
+        confBadge.textContent = conf+' confidence';
+        confBadge.className = 'result-badge badge-conf-'+conf;
+      } catch(err) {
+        clearInterval(progInterval);
+        progressWrap.classList.add('hidden');
+        extractBtn.classList.remove('hidden');
+        showError(err.name==='AbortError' ? 'Request timed out. Please try with a smaller image.' : (err.message||'Something went wrong'));
+      }
+    });
+
+    function renderResults(data) {
+      const r = data.result;
+      // Use safe DOM building
+      const structEl = $('tab-structured');
+      const tablesEl = $('tab-tables');
+      const jsonEl = $('tab-json');
+
+      // Clear previous
+      structEl.replaceChildren();
+      tablesEl.replaceChildren();
+      jsonEl.replaceChildren();
+
+      // -- Structured tab --
+      const badgesDiv = document.createElement('div');
+      badgesDiv.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px';
+      const typeBadge = document.createElement('span');
+      typeBadge.className = 'result-badge badge-type';
+      typeBadge.textContent = r.document_type || 'unknown';
+      badgesDiv.appendChild(typeBadge);
+      if (r.language) {
+        const langBadge = document.createElement('span');
+        langBadge.className = 'result-badge badge-lang';
+        langBadge.textContent = r.language;
+        badgesDiv.appendChild(langBadge);
+      }
+      structEl.appendChild(badgesDiv);
+
+      if (r.title) {
+        const h3 = document.createElement('h3');
+        h3.style.cssText = 'font-size:16px;font-weight:600;margin-bottom:8px';
+        h3.textContent = r.title;
+        structEl.appendChild(h3);
+      }
+      if (r.summary) {
+        const p = document.createElement('p');
+        p.style.cssText = 'font-size:14px;color:var(--fg-muted);margin-bottom:16px';
+        p.textContent = r.summary;
+        structEl.appendChild(p);
+      }
+
+      // Fields
+      if (r.extracted_fields && Object.keys(r.extracted_fields).length) {
+        const label = document.createElement('div');
+        label.className = 'fields-label';
+        label.textContent = 'Extracted Fields';
+        structEl.appendChild(label);
+
+        const table = document.createElement('div');
+        table.className = 'fields-table';
+        for (const [k,v] of Object.entries(r.extracted_fields)) {
+          const row = document.createElement('div');
+          row.className = 'field-row';
+          const keySpan = document.createElement('span');
+          keySpan.className = 'field-key';
+          keySpan.textContent = k;
+          const valSpan = document.createElement('span');
+          valSpan.className = 'field-val';
+          valSpan.textContent = String(v);
+          row.appendChild(keySpan);
+          row.appendChild(valSpan);
+          table.appendChild(row);
+        }
+        structEl.appendChild(table);
+      }
+
+      // Raw text
+      if (r.raw_text) {
+        const label = document.createElement('div');
+        label.className = 'fields-label';
+        label.style.marginTop = '16px';
+        label.textContent = 'Full Text';
+        structEl.appendChild(label);
+        const block = document.createElement('div');
+        block.className = 'raw-block';
+        block.style.maxHeight = '200px';
+        block.textContent = r.raw_text;
+        structEl.appendChild(block);
+      }
+
+      // Issues
+      if (r.issues && r.issues.length) {
+        const label = document.createElement('div');
+        label.className = 'fields-label';
+        label.style.marginTop = '16px';
+        label.textContent = 'Notes';
+        structEl.appendChild(label);
+        for (const issue of r.issues) {
+          const item = document.createElement('div');
+          item.className = 'issue-item';
+          const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+          svg.setAttribute('viewBox','0 0 24 24');
+          svg.setAttribute('fill','none');
+          svg.setAttribute('stroke','currentColor');
+          svg.setAttribute('stroke-width','2');
+          const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+          circle.setAttribute('cx','12'); circle.setAttribute('cy','12'); circle.setAttribute('r','10');
+          svg.appendChild(circle);
+          item.appendChild(svg);
+          const span = document.createElement('span');
+          span.textContent = issue;
+          item.appendChild(span);
+          structEl.appendChild(item);
+        }
+      }
+
+      // Usage
+      const usageBar = document.createElement('div');
+      usageBar.className = 'usage-bar';
+      const tokSpan = document.createElement('span');
+      tokSpan.textContent = 'Tokens: '+(data.usage.input_tokens||0).toLocaleString()+' in / '+(data.usage.output_tokens||0).toLocaleString()+' out';
+      const remSpan = document.createElement('span');
+      remSpan.textContent = (typeof data.remaining==='number'?data.remaining:'?')+' extractions remaining';
+      usageBar.appendChild(tokSpan);
+      usageBar.appendChild(remSpan);
+      structEl.appendChild(usageBar);
+
+      // -- Tables tab --
+      if (r.tables && r.tables.length) {
+        for (const t of r.tables) {
+          if (t.title) {
+            const h = document.createElement('div');
+            h.style.cssText = 'font-size:14px;font-weight:500;margin-bottom:8px';
+            h.textContent = t.title;
+            tablesEl.appendChild(h);
+          }
+          const wrap = document.createElement('div');
+          wrap.className = 'table-wrap';
+          const tbl = document.createElement('table');
+          tbl.className = 'data-table';
+          const thead = document.createElement('thead');
+          const hrow = document.createElement('tr');
+          for (const h of t.headers) {
+            const th = document.createElement('th');
+            th.textContent = h;
+            hrow.appendChild(th);
+          }
+          thead.appendChild(hrow);
+          tbl.appendChild(thead);
+          const tbody = document.createElement('tbody');
+          for (const row of t.rows) {
+            const tr = document.createElement('tr');
+            for (const cell of row) {
+              const td = document.createElement('td');
+              td.textContent = cell;
+              tr.appendChild(td);
+            }
+            tbody.appendChild(tr);
+          }
+          tbl.appendChild(tbody);
+          wrap.appendChild(tbl);
+          tablesEl.appendChild(wrap);
+        }
+      } else {
+        const p = document.createElement('p');
+        p.style.cssText = 'text-align:center;color:var(--fg-muted);padding:32px 0';
+        p.textContent = 'No tables detected in this document.';
+        tablesEl.appendChild(p);
+      }
+
+      // -- JSON tab --
+      const jsonBlock = document.createElement('div');
+      jsonBlock.className = 'raw-block';
+      jsonBlock.textContent = JSON.stringify(r, null, 2);
+      jsonEl.appendChild(jsonBlock);
+    }
+
+    // Tabs
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        $('tab-'+btn.dataset.tab).classList.add('active');
+      });
+    });
+
+    // Copy
+    copyBtn.addEventListener('click', () => {
+      if (!currentResult) return;
+      navigator.clipboard.writeText(JSON.stringify(currentResult.result,null,2));
+      const orig = copyBtn.textContent;
+      copyBtn.textContent = 'Copied!';
+      setTimeout(() => { copyBtn.textContent = orig; }, 2000);
+    });
+
+    // Download
+    dlBtn.addEventListener('click', () => {
+      if (!currentResult) return;
+      const blob = new Blob([JSON.stringify(currentResult.result,null,2)],{type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'chitralekh-extraction-'+Date.now()+'.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  </script>
+</body>
+</html>
