@@ -580,28 +580,17 @@
       URL.revokeObjectURL(url);
     });
 
-    // ========== CHATBOT WIDGET ==========
-    const LEAD_URL = API_URL.replace('/extract', '/lead');
-    const chatSteps = [
-      { key: 'greet', bot: "Hi! I'm here to help you explore Chitralekh.ai. Would you like to learn more or request a demo?", options: ['Request a demo', 'Learn more', 'Talk to sales'] },
-      { key: 'name', bot: "Great! What's your name?" },
-      { key: 'email', bot: "Nice to meet you, {name}! What's your work email?" },
-      { key: 'company', bot: "And which company are you with?" },
-      { key: 'use_case', bot: "What type of documents are you looking to process? (e.g. invoices, contracts, medical records, land records...)" },
-      { key: 'done', bot: "Thanks, {name}! Our team will reach out to {email} shortly. In the meantime, try uploading a document above to see Chitralekh in action!" },
-    ];
-    let chatStep = 0;
-    let chatData = {};
+    // ========== AI CHATBOT WIDGET ==========
+    const CHAT_URL = API_URL.replace('/extract', '/chat');
+    let chatHistory = []; // {role, content} array sent to Claude
     let chatOpen = false;
+    let chatSending = false;
 
     // Build chat widget DOM
     const chatFab = document.createElement('button');
     chatFab.id = 'chatFab';
     chatFab.setAttribute('aria-label', 'Open chat');
     document.body.appendChild(chatFab);
-
-    const chatSvgOpen = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
-    const chatSvgClose = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
 
     const chatWindow = document.createElement('div');
     chatWindow.id = 'chatWindow';
@@ -616,7 +605,7 @@
     chatH.textContent = 'Chitralekh.ai';
     const chatSub = document.createElement('div');
     chatSub.style.cssText = 'font-size:12px;color:var(--fg-muted);margin-top:2px';
-    chatSub.textContent = 'Typically replies instantly';
+    chatSub.textContent = 'AI-powered assistant';
     chatHeaderTitle.appendChild(chatH);
     chatHeaderTitle.appendChild(chatSub);
     chatHeader.appendChild(chatHeaderTitle);
@@ -633,18 +622,13 @@
     const chatInput = document.createElement('input');
     chatInput.type = 'text';
     chatInput.id = 'chatInput';
-    chatInput.placeholder = 'Type a message...';
+    chatInput.placeholder = 'Ask me anything about Chitralekh.ai...';
     const chatSend = document.createElement('button');
     chatSend.id = 'chatSend';
     chatSend.textContent = 'Send';
     chatInputWrap.appendChild(chatInput);
     chatInputWrap.appendChild(chatSend);
     chatWindow.appendChild(chatInputWrap);
-
-    // Options area (for buttons)
-    const chatOptions = document.createElement('div');
-    chatOptions.id = 'chatOptions';
-    chatWindow.appendChild(chatOptions);
 
     function addBotMsg(text) {
       const div = document.createElement('div');
@@ -660,63 +644,59 @@
       chatMessages.appendChild(div);
       chatMessages.scrollTop = chatMessages.scrollHeight;
     }
-    function showOptions(opts) {
-      chatOptions.replaceChildren();
-      chatInputWrap.classList.add('hidden');
-      for (const opt of opts) {
-        const btn = document.createElement('button');
-        btn.className = 'chat-option-btn';
-        btn.textContent = opt;
-        btn.addEventListener('click', () => {
-          addUserMsg(opt);
-          chatOptions.replaceChildren();
-          chatInputWrap.classList.remove('hidden');
-          chatStep = 1;
-          showStep();
+    function addTypingIndicator() {
+      const div = document.createElement('div');
+      div.className = 'chat-msg bot typing';
+      div.id = 'typingDots';
+      div.textContent = '...';
+      chatMessages.appendChild(div);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    function removeTypingIndicator() {
+      const el = document.getElementById('typingDots');
+      if (el) el.remove();
+    }
+
+    async function sendToAI(userText) {
+      if (chatSending) return;
+      chatSending = true;
+      chatSend.disabled = true;
+      chatInput.disabled = true;
+
+      chatHistory.push({ role: 'user', content: userText });
+      addTypingIndicator();
+
+      try {
+        const res = await fetch(CHAT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: chatHistory }),
         });
-        chatOptions.appendChild(btn);
+        const data = await res.json();
+        removeTypingIndicator();
+
+        const reply = data.reply || 'Sorry, something went wrong.';
+        chatHistory.push({ role: 'assistant', content: reply });
+        addBotMsg(reply);
+      } catch (err) {
+        removeTypingIndicator();
+        addBotMsg('Connection error. Please try again.');
+      } finally {
+        chatSending = false;
+        chatSend.disabled = false;
+        chatInput.disabled = false;
+        chatInput.focus();
       }
     }
-    function showStep() {
-      const step = chatSteps[chatStep];
-      if (!step) return;
-      let msg = step.bot;
-      msg = msg.replace('{name}', chatData.name || '');
-      msg = msg.replace('{email}', chatData.email || '');
-      setTimeout(() => {
-        addBotMsg(msg);
-        if (step.options) {
-          showOptions(step.options);
-        } else if (step.key === 'done') {
-          chatInputWrap.classList.add('hidden');
-          // Submit lead
-          fetch(LEAD_URL, {
-            method: 'POST',
-            headers: {'Content-Type':'application/json'},
-            body: JSON.stringify(chatData)
-          }).catch(() => {});
-        } else {
-          chatInput.focus();
-        }
-      }, 400);
-    }
+
     function handleChatSubmit() {
       const val = chatInput.value.trim();
-      if (!val) return;
+      if (!val || chatSending) return;
       addUserMsg(val);
       chatInput.value = '';
-      const step = chatSteps[chatStep];
-      if (step) {
-        chatData[step.key] = val;
-        // Validate email
-        if (step.key === 'email' && !val.includes('@')) {
-          addBotMsg("That doesn't look like a valid email. Could you try again?");
-          return;
-        }
-      }
-      chatStep++;
-      showStep();
+      sendToAI(val);
     }
+
     chatSend.addEventListener('click', handleChatSubmit);
     chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') handleChatSubmit(); });
 
@@ -725,16 +705,15 @@
       chatOpen = !chatOpen;
       chatWindow.classList.toggle('hidden', !chatOpen);
       if (chatOpen && chatMessages.children.length === 0) {
-        showStep();
+        // Opening greeting from AI
+        addBotMsg("Hi! I'm the Chitralekh.ai assistant. Ask me anything about our document intelligence platform, or let me know if you'd like a demo. How can I help?");
+        chatHistory.push({ role: 'assistant', content: "Hi! I'm the Chitralekh.ai assistant. Ask me anything about our document intelligence platform, or let me know if you'd like a demo. How can I help?" });
+        chatInput.focus();
       }
     });
 
-    // Render FAB icon (use DOM approach)
-    function updateFabIcon() {
-      chatFab.replaceChildren();
-      const tmp = document.createElement('span');
-      tmp.style.display = 'flex';
-      // Create SVG via namespace
+    // Render FAB icon
+    (function() {
       const ns = 'http://www.w3.org/2000/svg';
       const svg = document.createElementNS(ns, 'svg');
       svg.setAttribute('width','24');
@@ -749,8 +728,7 @@
       path.setAttribute('d','M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z');
       svg.appendChild(path);
       chatFab.appendChild(svg);
-    }
-    updateFabIcon();
+    })();
   </script>
 
   <style>
@@ -814,17 +792,16 @@
     }
     #chatSend:hover { opacity:0.9; }
 
-    #chatOptions {
-      display:flex; flex-wrap:wrap; gap:8px; padding:0 12px 12px;
+    .chat-msg.typing {
+      opacity:0.6;
+      animation: pulse 1s ease-in-out infinite;
     }
-    .chat-option-btn {
-      background:transparent; border:1px solid var(--brand-cyan);
-      color:var(--brand-cyan); border-radius:999px; padding:6px 16px;
-      font-size:13px; cursor:pointer; font-family:inherit; transition:all 0.2s;
+    @keyframes pulse {
+      0%,100% { opacity:0.4; }
+      50% { opacity:0.8; }
     }
-    .chat-option-btn:hover {
-      background:var(--brand-cyan); color:var(--bg);
-    }
+    #chatInput:disabled { opacity:0.5; }
+    #chatSend:disabled { opacity:0.5; cursor:not-allowed; }
   </style>
 </body>
 </html>
