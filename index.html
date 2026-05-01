@@ -221,6 +221,24 @@
     .model-picker button.active { background:linear-gradient(90deg, rgba(0,208,240,0.18), rgba(128,64,224,0.18)); color:var(--brand-cyan); box-shadow:inset 0 0 0 1px rgba(0,208,240,0.35); }
     .demo-area.has-result .model-picker { display:none; }
     .source-card.scanning .model-picker button { pointer-events:none; opacity:0.5; }
+
+    /* Optional user context — collapsible <details> */
+    .context-details { border:1px solid var(--border); border-radius:8px; background:rgba(24,24,48,0.4); margin-top:6px; overflow:hidden; }
+    .context-details summary { cursor:pointer; padding:8px 12px; font-size:12px; font-weight:500; color:var(--fg-muted); display:flex; align-items:center; gap:6px; user-select:none; transition:color 0.15s; list-style:none; }
+    .context-details summary::-webkit-details-marker { display:none; }
+    .context-details summary::before { content:'+'; font-size:14px; font-weight:700; color:var(--brand-cyan); width:14px; display:inline-flex; justify-content:center; transition:transform 0.2s; }
+    .context-details[open] summary::before { content:'−'; }
+    .context-details summary:hover { color:var(--fg); }
+    .context-details[open] summary { color:var(--fg); border-bottom:1px solid var(--border); }
+    .context-details .ctx-body { padding:10px 12px; }
+    .context-details textarea { width:100%; background:var(--bg-card); border:1px solid var(--border); border-radius:6px; color:var(--fg); padding:8px 10px; font-size:12px; font-family:inherit; line-height:1.45; resize:vertical; min-height:62px; max-height:200px; outline:none; transition:border-color 0.15s; }
+    .context-details textarea:focus { border-color:var(--brand-cyan); }
+    .context-details textarea::placeholder { color:var(--fg-muted); opacity:0.7; }
+    .context-details .ctx-counter { text-align:right; font-size:10px; color:var(--fg-muted); margin-top:4px; font-variant-numeric:tabular-nums; }
+    .context-details .ctx-counter.over { color:#f87171; }
+    .demo-area.has-result .context-details { display:none; }
+    .source-card.scanning .context-details { pointer-events:none; opacity:0.5; }
+    .demo-area.has-file:not(.has-result) .context-details { grid-column:1 / -1; margin-top:4px; }
     .fields-label { font-size:10px; font-weight:600; color:var(--fg-muted); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px; }
     .fields-table { border:1px solid var(--border); border-radius:6px; overflow:hidden; }
     .field-row { display:flex; padding:7px 12px; font-size:12px; }
@@ -325,6 +343,13 @@
                 <span id="fileSize" style="font-size:12px"></span>
               </div>
             </div>
+            <details class="context-details" id="contextDetails">
+              <summary>Add context (optional)</summary>
+              <div class="ctx-body">
+                <textarea id="contextInput" maxlength="1000" placeholder="e.g., 'This is a Sri Lankan land deed in Sinhala — extract owner_name and survey_number. The handwritten note on the right is the previous owner.'"></textarea>
+                <div class="ctx-counter" id="ctxCounter">0 / 1000</div>
+              </div>
+            </details>
             <button id="extractBtn" class="btn btn-primary" style="margin-top:16px">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/></svg>
               Extract Data
@@ -568,6 +593,15 @@
       applyZoom(fit > 0 && isFinite(fit) ? fit : 1);
     });
 
+    const contextInput = $('contextInput');
+    const ctxCounter = $('ctxCounter');
+    const contextDetails = $('contextDetails');
+    contextInput.addEventListener('input', () => {
+      const len = contextInput.value.length;
+      ctxCounter.textContent = len + ' / 1000';
+      ctxCounter.classList.toggle('over', len > 1000);
+    });
+
     document.querySelectorAll('#modelPicker button').forEach(btn => {
       btn.addEventListener('click', () => {
         if (btn.classList.contains('active')) return;
@@ -593,6 +627,8 @@
       resultsPanel.classList.add('hidden'); demoArea.classList.remove('has-result'); demoArea.classList.remove('has-file');
       mainEl.classList.remove('review-mode');
       stopScanningAnimations();
+      contextInput.value = ''; ctxCounter.textContent = '0 / 1000'; ctxCounter.classList.remove('over');
+      contextDetails.open = false;
       uploadTitle.textContent='Upload Document'; confBadge.classList.add('hidden');
       extractBtn.classList.remove('hidden'); progressWrap.classList.add('hidden');
       hideError(); progressFill.style.width='0%';
@@ -623,7 +659,7 @@
         const res = await fetch(API_URL, {
           method:'POST',
           headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({imageBase64:currentBase64, mediaType:currentFile.type, model:currentModel}),
+          body: JSON.stringify({imageBase64:currentBase64, mediaType:currentFile.type, model:currentModel, notes:contextInput.value.trim() || undefined}),
           signal: ctrl.signal
         });
         clearTimeout(tout);
