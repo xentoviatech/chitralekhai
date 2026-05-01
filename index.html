@@ -655,6 +655,7 @@
         const ctrl = new AbortController();
         const tout = setTimeout(() => ctrl.abort(), EXTRACT_TIMEOUT_MS);
         progressFill.style.width='25%';
+        const t0 = Date.now();
 
         const res = await fetch(API_URL, {
           method:'POST',
@@ -667,6 +668,7 @@
         progressFill.style.width='95%';
         const data = await res.json();
         if (!res.ok) throw new Error(data.error||'Extraction failed');
+        data._duration_ms = Date.now() - t0;
 
         currentResult = data;
         recordUsage();
@@ -795,14 +797,21 @@
         }
       }
 
-      // Usage
+      // Usage bar — user-facing metrics only (no token jargon)
       const usageBar = document.createElement('div');
       usageBar.className = 'usage-bar';
-      const tokSpan = document.createElement('span');
-      tokSpan.textContent = 'Tokens: '+(data.usage.input_tokens||0).toLocaleString()+' in / '+(data.usage.output_tokens||0).toLocaleString()+' out';
+      const leftSpan = document.createElement('span');
+      const parts = [];
+      if (typeof data._duration_ms === 'number') {
+        parts.push('Processed in ' + (data._duration_ms / 1000).toFixed(1) + 's');
+      }
+      if (typeof r.page_count === 'number' && r.page_count > 1) {
+        parts.push(r.page_count + ' pages');
+      }
+      leftSpan.textContent = parts.join(' · ');
       const remSpan = document.createElement('span');
       remSpan.textContent = (typeof data.remaining==='number'?data.remaining:'?')+' extractions remaining';
-      usageBar.appendChild(tokSpan);
+      usageBar.appendChild(leftSpan);
       usageBar.appendChild(remSpan);
       structEl.appendChild(usageBar);
 
