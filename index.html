@@ -80,20 +80,43 @@
       .demo-area.has-result #resultsPanel { position:static; max-height:none; }
       .demo-area.has-result .preview-wrap { height:auto; min-height:0; }
     }
-    /* File loaded but not yet extracted: bound the source card to the viewport so the
-       Extract button stays anchored at the bottom — no scrolling required. */
-    .demo-area.has-file:not(.has-result) { max-width:960px; margin:0 auto; }
-    .demo-area.has-file:not(.has-result) .source-card { max-height:calc(100vh - 96px); display:flex; flex-direction:column; }
-    .demo-area.has-file:not(.has-result) .source-card .card-content { flex:1; display:flex; flex-direction:column; overflow:hidden; padding-bottom:18px; }
-    .demo-area.has-file:not(.has-result) #previewSection { display:flex; flex-direction:column; flex:1; min-height:0; gap:12px; }
-    .demo-area.has-file:not(.has-result) .preview-wrap { flex:1; min-height:240px; }
-    .demo-area.has-file:not(.has-result) .preview-wrap img { max-height:100%; max-width:100%; width:auto; height:auto; }
+    /* File loaded but not yet extracted: render as a compact upload chip
+       (small thumbnail + filename + Extract button). Big preview only kicks
+       in AFTER extraction, in the wide .has-result review layout. */
+    .demo-area.has-file:not(.has-result) { max-width:560px; margin:0 auto; }
+    .demo-area.has-file:not(.has-result) #previewSection {
+      display:grid;
+      grid-template-columns: 128px 1fr;
+      gap:14px;
+      align-items:center;
+    }
+    .demo-area.has-file:not(.has-result) .preview-toolbar { display:none; }
+    .demo-area.has-file:not(.has-result) .preview-wrap {
+      grid-column:1; grid-row:1 / span 2;
+      width:128px; height:128px; border-radius:10px; overflow:hidden;
+    }
+    .demo-area.has-file:not(.has-result) .preview-wrap img {
+      width:128px; height:128px; max-height:none; object-fit:contain; background:#0a0a14;
+    }
     .demo-area.has-file:not(.has-result) .preview-wrap embed,
-    .demo-area.has-file:not(.has-result) .preview-wrap iframe { height:100%; }
-    .demo-area.has-file:not(.has-result) .preview-zoom-wrap { height:100%; }
-    @media(max-width:980px) {
-      .demo-area.has-file:not(.has-result) .source-card { max-height:none; }
-      .demo-area.has-file:not(.has-result) .preview-wrap { flex:0 1 auto; min-height:280px; }
+    .demo-area.has-file:not(.has-result) .preview-wrap iframe {
+      width:128px; height:128px;
+    }
+    .demo-area.has-file:not(.has-result) .preview-zoom-wrap {
+      width:128px; height:128px; overflow:hidden;
+    }
+    .demo-area.has-file:not(.has-result) .preview-wrap .close-btn {
+      top:4px; right:4px; width:22px; height:22px;
+    }
+    .demo-area.has-file:not(.has-result) .preview-wrap .close-btn svg { width:12px; height:12px; }
+    .demo-area.has-file:not(.has-result) .file-info {
+      grid-column:2; grid-row:1; margin-top:0; align-self:end;
+      font-size:13px; color:var(--fg);
+    }
+    .demo-area.has-file:not(.has-result) .file-info .name span { max-width:none; }
+    .demo-area.has-file:not(.has-result) #extractBtn,
+    .demo-area.has-file:not(.has-result) #progressWrap {
+      grid-column:1 / -1; margin-top:4px !important;
     }
     .close-btn { position:absolute; top:12px; right:12px; width:32px; height:32px; border-radius:50%; background:rgba(0,0,0,0.6); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background 0.2s; }
     .close-btn:hover { background:rgba(0,0,0,0.8); }
