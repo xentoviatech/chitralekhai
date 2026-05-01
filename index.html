@@ -132,9 +132,75 @@
     .btn-outline:hover { background:var(--bg-accent); }
     .btn-sm { height:28px; padding:0 10px; font-size:11px; }
     .btn svg { width:14px; height:14px; }
-    .progress-bar { width:100%; height:6px; background:var(--bg-accent); border-radius:3px; overflow:hidden; margin-top:12px; }
-    .progress-fill { height:100%; background:linear-gradient(90deg,var(--brand-cyan),var(--brand-purple)); border-radius:3px; transition:width 0.3s ease; }
-    .progress-text { font-size:12px; color:var(--fg-muted); text-align:center; margin-top:8px; }
+    .progress-bar { width:100%; height:6px; background:var(--bg-accent); border-radius:3px; overflow:hidden; margin-top:12px; position:relative; }
+    .progress-fill { height:100%; background:linear-gradient(90deg,var(--brand-cyan),var(--brand-purple),var(--brand-pink),var(--brand-purple),var(--brand-cyan)); background-size:200% 100%; border-radius:3px; transition:width 0.3s ease; animation:progress-shimmer 2.4s linear infinite; }
+    @keyframes progress-shimmer { 0% { background-position:0% 0; } 100% { background-position:-200% 0; } }
+    .progress-text { font-size:12px; color:var(--fg-muted); text-align:center; margin-top:8px; transition:opacity 0.25s ease; min-height:1.2em; font-weight:500; }
+    .progress-text.fading { opacity:0; }
+
+    /* === Extraction "AI is thinking" animations === */
+    @keyframes scan-beam {
+      0%   { top:0;       opacity:0; }
+      8%   { opacity:1; }
+      92%  { opacity:1; }
+      100% { top:calc(100% - 3px); opacity:0; }
+    }
+    @keyframes card-halo {
+      0%, 100% { box-shadow:0 0 0 1px rgba(0,208,240,0.35), 0 0 22px -2px rgba(0,208,240,0.45); }
+      50%      { box-shadow:0 0 0 1px rgba(208,32,208,0.45), 0 0 32px -2px rgba(128,64,224,0.55); }
+    }
+    @keyframes spin-conic { to { transform:rotate(360deg); } }
+    @keyframes float-glyph {
+      0%   { transform:translateY(0) scale(0.9); opacity:0; }
+      30%  { opacity:1; }
+      100% { transform:translateY(-22px) scale(1); opacity:0; }
+    }
+    .source-card.scanning {
+      border-color:transparent;
+      animation:card-halo 2.6s ease-in-out infinite;
+    }
+    .source-card.scanning .preview-wrap {
+      position:relative;
+      isolation:isolate;
+    }
+    .source-card.scanning .preview-wrap::before {
+      /* sweeping scanner beam */
+      content:''; position:absolute; left:0; right:0; top:0; height:3px; z-index:6;
+      background:linear-gradient(90deg, transparent, var(--brand-cyan) 35%, var(--brand-pink) 65%, transparent);
+      box-shadow:0 0 12px var(--brand-cyan), 0 0 24px rgba(208,32,208,0.5);
+      animation:scan-beam 1.6s cubic-bezier(0.5,0,0.5,1) infinite alternate;
+      pointer-events:none;
+    }
+    .source-card.scanning .preview-wrap::after {
+      /* gentle glow pulse over the document */
+      content:''; position:absolute; inset:0; z-index:5; pointer-events:none;
+      background:radial-gradient(ellipse at center, rgba(0,208,240,0.10), transparent 70%);
+      animation:card-halo 2.6s ease-in-out infinite;
+    }
+    /* Rotating conic-gradient ring outside the source card during scan (only in has-file chip mode) */
+    .demo-area.has-file:not(.has-result) .source-card.scanning {
+      position:relative;
+    }
+    .demo-area.has-file:not(.has-result) .source-card.scanning .preview-wrap {
+      box-shadow:0 0 0 2px transparent;
+    }
+    .demo-area.has-file:not(.has-result) .source-card.scanning .preview-wrap::after {
+      background:
+        conic-gradient(from 0deg, transparent 0deg, var(--brand-cyan) 60deg, var(--brand-pink) 180deg, var(--brand-purple) 300deg, transparent 360deg),
+        radial-gradient(ellipse at center, rgba(0,208,240,0.10), transparent 70%);
+      mix-blend-mode:screen;
+      opacity:0.45;
+      animation:spin-conic 2.4s linear infinite, card-halo 2.6s ease-in-out infinite;
+    }
+    /* Floating "data glyph" emerging from the thumb — characters that drift up and fade */
+    .data-glyphs { position:absolute; left:0; right:0; bottom:0; height:32px; pointer-events:none; z-index:7; overflow:hidden; }
+    .data-glyphs span {
+      position:absolute; bottom:0;
+      font-family:'SF Mono','Fira Code',monospace; font-size:11px;
+      color:var(--brand-cyan); text-shadow:0 0 6px rgba(0,208,240,0.7);
+      animation:float-glyph 1.8s ease-out forwards;
+    }
+    .source-card:not(.scanning) .data-glyphs { display:none; }
     .error-msg { margin-top:16px; padding:12px 16px; border-radius:8px; border:1px solid rgba(239,68,68,0.3); background:rgba(239,68,68,0.05); color:#f87171; font-size:14px; display:flex; align-items:center; gap:8px; }
     .tabs-list { display:flex; border-bottom:1px solid var(--border); margin-bottom:14px; }
     .tab-btn { flex:1; padding:7px 0; font-size:12px; font-weight:500; color:var(--fg-muted); background:none; border:none; border-bottom:2px solid transparent; cursor:pointer; transition:all 0.2s; font-family:inherit; }
@@ -235,6 +301,7 @@
             <div class="preview-wrap">
               <div id="previewZoomWrap" class="preview-zoom-wrap"><img id="previewImg" alt="Uploaded document"></div>
               <embed id="previewPdf" class="hidden" type="application/pdf">
+              <div id="dataGlyphs" class="data-glyphs"></div>
               <button id="closeBtn" class="close-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
             </div>
             <div class="file-info">
@@ -348,8 +415,24 @@
 
     let currentFile=null, currentBase64=null, currentResult=null, progInterval=null;
     let currentPdfUrl=null, currentZoom=1;
+    let statusInterval=null, glyphInterval=null;
     const ALLOWED_TYPES = ['image/png','image/jpeg','image/gif','image/webp','application/pdf'];
     const MAX_UPLOAD_BYTES = 25*1024*1024;
+    const EXTRACT_TIMEOUT_MS = 180000;
+    const STATUS_MESSAGES = [
+      'Reading the document…',
+      'Identifying document type…',
+      'Locating fields and labels…',
+      'Detecting tables and structure…',
+      'Extracting handwritten regions…',
+      'Cross-checking confidence…',
+      'Compiling structured output…',
+      'Almost there — finalizing…'
+    ];
+    const GLYPH_CHARS = ['{','}','[',']','<','>','/','=','*',':',';','0','1','#','$','&','§','¶','«','»','∇','∑','π','λ'];
+    const sourceCardEl = document.querySelector('.source-card');
+    const dataGlyphs = $('dataGlyphs');
+    const progressTextEl = document.querySelector('.progress-text');
 
     // Usage tracking via localStorage fingerprint
     function getUsage() {
@@ -381,6 +464,42 @@
 
     function clearPdfUrl() {
       if (currentPdfUrl) { URL.revokeObjectURL(currentPdfUrl); currentPdfUrl = null; }
+    }
+
+    function startScanningAnimations() {
+      sourceCardEl.classList.add('scanning');
+      // Cycle through status messages with a fade transition
+      let idx = 0;
+      const setStatus = () => { progressTextEl.textContent = STATUS_MESSAGES[idx % STATUS_MESSAGES.length]; };
+      setStatus();
+      statusInterval = setInterval(() => {
+        progressTextEl.classList.add('fading');
+        setTimeout(() => { idx++; setStatus(); progressTextEl.classList.remove('fading'); }, 250);
+      }, 1700);
+      // Drift floating "data glyphs" upward out of the thumbnail
+      dataGlyphs.replaceChildren();
+      glyphInterval = setInterval(() => {
+        const span = document.createElement('span');
+        span.textContent = GLYPH_CHARS[Math.floor(Math.random()*GLYPH_CHARS.length)];
+        const w = dataGlyphs.clientWidth || 128;
+        span.style.left = (4 + Math.random() * (w - 16)) + 'px';
+        span.style.animationDuration = (1.4 + Math.random() * 0.8) + 's';
+        span.style.fontSize = (10 + Math.random() * 4) + 'px';
+        const hue = ['var(--brand-cyan)','var(--brand-purple)','var(--brand-pink)'][Math.floor(Math.random()*3)];
+        span.style.color = hue;
+        span.style.textShadow = '0 0 6px ' + hue;
+        dataGlyphs.appendChild(span);
+        setTimeout(() => span.remove(), 2200);
+      }, 220);
+    }
+
+    function stopScanningAnimations() {
+      sourceCardEl.classList.remove('scanning');
+      if (statusInterval) { clearInterval(statusInterval); statusInterval = null; }
+      if (glyphInterval) { clearInterval(glyphInterval); glyphInterval = null; }
+      progressTextEl.classList.remove('fading');
+      progressTextEl.textContent = 'AI is analyzing your document…';
+      dataGlyphs.replaceChildren();
     }
 
     function applyZoom(z) {
@@ -449,6 +568,7 @@
       uploadZone.classList.remove('hidden'); previewSection.classList.add('hidden');
       resultsPanel.classList.add('hidden'); demoArea.classList.remove('has-result'); demoArea.classList.remove('has-file');
       mainEl.classList.remove('review-mode');
+      stopScanningAnimations();
       uploadTitle.textContent='Upload Document'; confBadge.classList.add('hidden');
       extractBtn.classList.remove('hidden'); progressWrap.classList.add('hidden');
       hideError(); progressFill.style.width='0%';
@@ -468,11 +588,12 @@
       hideError();
       let prog=10;
       progressFill.style.width=prog+'%';
-      progInterval = setInterval(() => { prog=Math.min(prog+3,85); progressFill.style.width=prog+'%'; }, 400);
+      progInterval = setInterval(() => { prog=Math.min(prog+1.5,90); progressFill.style.width=prog+'%'; }, 700);
+      startScanningAnimations();
 
       try {
         const ctrl = new AbortController();
-        const tout = setTimeout(() => ctrl.abort(), 60000);
+        const tout = setTimeout(() => ctrl.abort(), EXTRACT_TIMEOUT_MS);
         progressFill.style.width='25%';
 
         const res = await fetch(API_URL, {
@@ -496,6 +617,7 @@
         resultsPanel.classList.remove('hidden');
         uploadTitle.textContent='Source Document';
         progressWrap.classList.add('hidden');
+        stopScanningAnimations();
         const conf = data.result.confidence||'low';
         confBadge.textContent = conf+' confidence';
         confBadge.className = 'result-badge badge-conf-'+conf;
@@ -503,7 +625,8 @@
         clearInterval(progInterval);
         progressWrap.classList.add('hidden');
         extractBtn.classList.remove('hidden');
-        showError(err.name==='AbortError' ? 'Request timed out. Please try with a smaller image.' : (err.message||'Something went wrong'));
+        stopScanningAnimations();
+        showError(err.name==='AbortError' ? 'The model took longer than ' + (EXTRACT_TIMEOUT_MS/1000) + 's. Complex documents can take a while — please retry, or try a smaller / clearer image.' : (err.message||'Something went wrong'));
       }
     });
 
