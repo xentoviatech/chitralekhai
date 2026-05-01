@@ -32,15 +32,19 @@
     .badge { font-size:11px; padding:3px 10px; border-radius:999px; border:1px solid rgba(0,208,240,0.3); color:var(--brand-cyan); font-weight:500; }
     .by-link { font-size:12px; color:var(--fg-muted); transition:color 0.2s; }
     .by-link:hover { color:var(--fg); }
-    main { max-width:1100px; margin:0 auto; padding:32px 20px; flex:1; width:100%; }
+    main { max-width:1100px; margin:0 auto; padding:32px 20px; flex:1; width:100%; transition:max-width 0.3s; }
+    main.review-mode { max-width:min(1600px, calc(100vw - 32px)); }
     .hero { text-align:center; margin-bottom:40px; }
+    main.review-mode .hero { margin-bottom:24px; }
+    main.review-mode .hero h1 { font-size:clamp(20px,3vw,28px); }
+    main.review-mode .hero p { display:none; }
     .hero-pill { display:inline-flex; align-items:center; gap:6px; padding:4px 12px; border-radius:999px; border:1px solid rgba(0,208,240,0.2); background:rgba(0,208,240,0.05); font-size:12px; color:var(--brand-cyan); margin-bottom:16px; }
     .hero h1 { font-size:clamp(24px,4vw,36px); font-weight:700; letter-spacing:-0.03em; line-height:1.2; margin-bottom:10px; }
     .hero h1 .gradient { background:linear-gradient(90deg,var(--brand-cyan),var(--brand-purple),var(--brand-pink)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
     .hero p { font-size:14px; color:var(--fg-muted); max-width:540px; margin:0 auto; line-height:1.5; }
-    .demo-area { display:grid; gap:24px; max-width:560px; margin:0 auto; transition:all 0.3s; }
-    .demo-area.has-result { max-width:1100px; grid-template-columns:1fr 1fr; }
-    @media(max-width:768px) { .demo-area.has-result { grid-template-columns:1fr; } }
+    .demo-area { display:grid; gap:24px; max-width:560px; margin:0 auto; transition:max-width 0.3s, grid-template-columns 0.3s; }
+    .demo-area.has-result { max-width:none; grid-template-columns:minmax(0, 1.4fr) minmax(0, 1fr); align-items:start; gap:20px; }
+    @media(max-width:980px) { .demo-area.has-result { grid-template-columns:1fr; max-width:680px; margin:0 auto; } }
     .card { border:1px solid var(--border); border-radius:var(--radius); background:var(--bg-card); overflow:hidden; }
     .card-header { padding:14px 18px 10px; display:flex; align-items:center; justify-content:space-between; }
     .card-title { font-size:13px; font-weight:600; display:flex; align-items:center; gap:6px; }
@@ -53,8 +57,29 @@
     .upload-icon svg { width:22px; height:22px; color:var(--brand-cyan); }
     .upload-zone .title { font-size:14px; font-weight:500; margin-bottom:2px; }
     .upload-zone .subtitle { font-size:12px; color:var(--fg-muted); }
-    .preview-wrap { position:relative; border-radius:var(--radius); overflow:hidden; border:1px solid var(--border); background:rgba(0,0,0,0.2); }
+    .preview-wrap { position:relative; border-radius:var(--radius); overflow:hidden; border:1px solid var(--border); background:rgba(0,0,0,0.2); display:flex; align-items:center; justify-content:center; }
     .preview-wrap img { width:100%; max-height:400px; object-fit:contain; display:block; }
+    .preview-wrap embed, .preview-wrap iframe { width:100%; height:480px; display:block; border:none; background:#fff; }
+    .preview-zoom-wrap { width:100%; height:100%; overflow:auto; display:block; }
+    .preview-zoom-wrap img { width:auto; max-height:none; transition:transform 0.15s ease; transform-origin:top left; }
+    .preview-toolbar { display:flex; align-items:center; gap:6px; padding:8px 12px; border-bottom:1px solid var(--border); background:var(--bg-accent); font-size:11px; color:var(--fg-muted); }
+    .preview-toolbar .zoom-label { margin-left:auto; font-variant-numeric:tabular-nums; min-width:42px; text-align:right; }
+    .preview-toolbar button { background:transparent; border:1px solid var(--border); color:var(--fg); height:24px; padding:0 8px; border-radius:5px; cursor:pointer; font-size:11px; font-family:inherit; display:inline-flex; align-items:center; gap:4px; }
+    .preview-toolbar button:hover { background:rgba(255,255,255,0.05); border-color:var(--brand-cyan); }
+    .preview-toolbar button:disabled { opacity:0.4; cursor:not-allowed; }
+    .demo-area.has-result .source-card,
+    .demo-area.has-result #resultsPanel { position:sticky; top:72px; max-height:calc(100vh - 96px); display:flex; flex-direction:column; }
+    .demo-area.has-result .source-card .card-content,
+    .demo-area.has-result #resultsPanel .card-content { flex:1; overflow:auto; }
+    .demo-area.has-result .preview-wrap { height:calc(100vh - 240px); min-height:420px; }
+    .demo-area.has-result .preview-wrap img { max-height:100%; max-width:100%; width:auto; }
+    .demo-area.has-result .preview-wrap embed, .demo-area.has-result .preview-wrap iframe { height:100%; }
+    .demo-area.has-result .preview-zoom-wrap { height:100%; }
+    @media(max-width:980px) {
+      .demo-area.has-result .source-card,
+      .demo-area.has-result #resultsPanel { position:static; max-height:none; }
+      .demo-area.has-result .preview-wrap { height:auto; min-height:0; }
+    }
     .close-btn { position:absolute; top:12px; right:12px; width:32px; height:32px; border-radius:50%; background:rgba(0,0,0,0.6); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background 0.2s; }
     .close-btn:hover { background:rgba(0,0,0,0.8); }
     .close-btn svg { width:16px; height:16px; color:white; }
@@ -146,7 +171,7 @@
     </section>
 
     <div id="demoArea" class="demo-area">
-      <div class="card">
+      <div class="card source-card">
         <div class="card-header">
           <div class="card-title">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
@@ -156,14 +181,22 @@
         </div>
         <div class="card-content">
           <label id="uploadZone" class="upload-zone">
-            <input id="fileInput" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
+            <input id="fileInput" type="file" accept="image/png,image/jpeg,image/gif,image/webp,application/pdf">
             <div class="upload-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg></div>
             <div class="title">Drop your document here</div>
-            <div class="subtitle">or click to browse &middot; PNG, JPEG, WebP up to 10MB</div>
+            <div class="subtitle">or click to browse &middot; PNG, JPEG, WebP, PDF up to 25MB</div>
           </label>
           <div id="previewSection" class="hidden">
+            <div id="previewToolbar" class="preview-toolbar hidden">
+              <button id="zoomFit" type="button" title="Fit to width">Fit</button>
+              <button id="zoomReset" type="button" title="Actual size (100%)">1:1</button>
+              <button id="zoomOut" type="button" title="Zoom out">&minus;</button>
+              <button id="zoomIn" type="button" title="Zoom in">+</button>
+              <span class="zoom-label" id="zoomLabel">100%</span>
+            </div>
             <div class="preview-wrap">
-              <img id="previewImg" alt="Uploaded document">
+              <div id="previewZoomWrap" class="preview-zoom-wrap"><img id="previewImg" alt="Uploaded document"></div>
+              <embed id="previewPdf" class="hidden" type="application/pdf">
               <button id="closeBtn" class="close-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
             </div>
             <div class="file-info">
@@ -263,14 +296,22 @@
     const API_URL = 'https://chitralekh-api.in1.xentovia.ai/api/extract';
     const $ = (s) => document.getElementById(s);
     const demoArea=$('demoArea'), uploadZone=$('uploadZone'), fileInput=$('fileInput'),
-      previewSection=$('previewSection'), previewImg=$('previewImg'), closeBtn=$('closeBtn'),
+      previewSection=$('previewSection'), previewImg=$('previewImg'), previewPdf=$('previewPdf'),
+      previewZoomWrap=$('previewZoomWrap'), previewToolbar=$('previewToolbar'),
+      zoomLabel=$('zoomLabel'), zoomFit=$('zoomFit'), zoomReset=$('zoomReset'),
+      zoomOut=$('zoomOut'), zoomIn=$('zoomIn'),
+      closeBtn=$('closeBtn'),
       fileNameEl=$('fileName'), fileSizeEl=$('fileSize'), extractBtn=$('extractBtn'),
       progressWrap=$('progressWrap'), progressFill=$('progressFill'),
       errorMsg=$('errorMsg'), errorText=$('errorText'), resultsPanel=$('resultsPanel'),
       uploadTitle=$('uploadTitle'), confBadge=$('confBadge'),
-      copyBtn=$('copyBtn'), dlBtn=$('dlBtn'), resetBtn=$('resetBtn');
+      copyBtn=$('copyBtn'), dlBtn=$('dlBtn'), resetBtn=$('resetBtn'),
+      mainEl=document.querySelector('main');
 
     let currentFile=null, currentBase64=null, currentResult=null, progInterval=null;
+    let currentPdfUrl=null, currentZoom=1;
+    const ALLOWED_TYPES = ['image/png','image/jpeg','image/gif','image/webp','application/pdf'];
+    const MAX_UPLOAD_BYTES = 25*1024*1024;
 
     // Usage tracking via localStorage fingerprint
     function getUsage() {
@@ -300,15 +341,40 @@
     function showError(msg) { errorText.textContent=msg; errorMsg.classList.remove('hidden'); }
     function hideError() { errorMsg.classList.add('hidden'); }
 
+    function clearPdfUrl() {
+      if (currentPdfUrl) { URL.revokeObjectURL(currentPdfUrl); currentPdfUrl = null; }
+    }
+
+    function applyZoom(z) {
+      currentZoom = Math.max(0.25, Math.min(4, z));
+      previewImg.style.transform = 'scale(' + currentZoom + ')';
+      zoomLabel.textContent = Math.round(currentZoom*100) + '%';
+    }
+
     async function handleFile(file) {
-      const ok = ['image/png','image/jpeg','image/gif','image/webp'];
-      if (!ok.includes(file.type)) { showError('Please upload a PNG, JPEG, GIF, or WebP image.'); return; }
-      if (file.size > 10*1024*1024) { showError('File too large. Maximum size is 10MB.'); return; }
+      if (!ALLOWED_TYPES.includes(file.type)) { showError('Please upload a PNG, JPEG, GIF, WebP image, or PDF.'); return; }
+      if (file.size > MAX_UPLOAD_BYTES) { showError('File too large. Maximum size is ' + (MAX_UPLOAD_BYTES/(1024*1024)) + 'MB.'); return; }
       currentFile = file;
       hideError();
+      clearPdfUrl();
       const dataUrl = await fileToBase64(file);
       currentBase64 = dataUrl.split(',')[1];
-      previewImg.src = dataUrl;
+      const isPdf = file.type === 'application/pdf';
+      if (isPdf) {
+        currentPdfUrl = URL.createObjectURL(file);
+        previewPdf.src = currentPdfUrl;
+        previewPdf.classList.remove('hidden');
+        previewZoomWrap.classList.add('hidden');
+        previewToolbar.classList.add('hidden');
+      } else {
+        previewImg.src = dataUrl;
+        previewImg.style.transform = 'scale(1)';
+        currentZoom = 1;
+        zoomLabel.textContent = '100%';
+        previewPdf.classList.add('hidden');
+        previewZoomWrap.classList.remove('hidden');
+        previewToolbar.classList.remove('hidden');
+      }
       fileNameEl.textContent = file.name;
       fileSizeEl.textContent = '(' + Math.round(file.size/1024) + ' KB)';
       uploadZone.classList.add('hidden');
@@ -317,6 +383,18 @@
       progressWrap.classList.add('hidden');
     }
 
+    zoomIn.addEventListener('click', () => applyZoom(currentZoom * 1.25));
+    zoomOut.addEventListener('click', () => applyZoom(currentZoom / 1.25));
+    zoomReset.addEventListener('click', () => applyZoom(1));
+    zoomFit.addEventListener('click', () => {
+      // Reset transform so we can measure natural size, then fit to wrapper width.
+      previewImg.style.transform = 'scale(1)';
+      const wrapW = previewZoomWrap.clientWidth;
+      const naturalW = previewImg.naturalWidth || wrapW;
+      const fit = wrapW / naturalW;
+      applyZoom(fit > 0 && isFinite(fit) ? fit : 1);
+    });
+
     fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
     uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
     uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
@@ -324,8 +402,14 @@
 
     function reset() {
       currentFile=null; currentBase64=null; currentResult=null; fileInput.value='';
+      clearPdfUrl();
+      previewPdf.removeAttribute('src');
+      previewImg.removeAttribute('src');
+      previewImg.style.transform = 'scale(1)';
+      currentZoom = 1;
       uploadZone.classList.remove('hidden'); previewSection.classList.add('hidden');
       resultsPanel.classList.add('hidden'); demoArea.classList.remove('has-result');
+      mainEl.classList.remove('review-mode');
       uploadTitle.textContent='Upload Document'; confBadge.classList.add('hidden');
       extractBtn.classList.remove('hidden'); progressWrap.classList.add('hidden');
       hideError(); progressFill.style.width='0%';
@@ -369,6 +453,7 @@
         progressFill.style.width='100%';
         renderResults(data);
         demoArea.classList.add('has-result');
+        mainEl.classList.add('review-mode');
         resultsPanel.classList.remove('hidden');
         uploadTitle.textContent='Source Document';
         progressWrap.classList.add('hidden');
