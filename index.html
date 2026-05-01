@@ -214,6 +214,13 @@
     .badge-conf-high { border-color:rgba(34,197,94,0.3); color:#4ade80; background:rgba(34,197,94,0.1); }
     .badge-conf-medium { border-color:rgba(234,179,8,0.3); color:#facc15; background:rgba(234,179,8,0.1); }
     .badge-conf-low { border-color:rgba(239,68,68,0.3); color:#f87171; background:rgba(239,68,68,0.1); }
+    /* Model tier picker — visible until extraction completes */
+    .model-picker { display:inline-flex; background:var(--bg-accent); border:1px solid var(--border); border-radius:8px; padding:2px; }
+    .model-picker button { background:transparent; border:none; color:var(--fg-muted); padding:4px 10px; font-size:11px; font-weight:600; letter-spacing:0.02em; border-radius:6px; cursor:pointer; font-family:inherit; transition:all 0.15s; }
+    .model-picker button:hover:not(.active) { color:var(--fg); }
+    .model-picker button.active { background:linear-gradient(90deg, rgba(0,208,240,0.18), rgba(128,64,224,0.18)); color:var(--brand-cyan); box-shadow:inset 0 0 0 1px rgba(0,208,240,0.35); }
+    .demo-area.has-result .model-picker { display:none; }
+    .source-card.scanning .model-picker button { pointer-events:none; opacity:0.5; }
     .fields-label { font-size:10px; font-weight:600; color:var(--fg-muted); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px; }
     .fields-table { border:1px solid var(--border); border-radius:6px; overflow:hidden; }
     .field-row { display:flex; padding:7px 12px; font-size:12px; }
@@ -281,7 +288,14 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
             <span id="uploadTitle">Upload Document</span>
           </div>
-          <span id="confBadge" class="result-badge hidden"></span>
+          <div style="display:flex;gap:10px;align-items:center">
+            <div class="model-picker" id="modelPicker" role="group" aria-label="Model tier">
+              <button type="button" data-model="lite" title="Fastest — best for clear typed documents">Lite</button>
+              <button type="button" data-model="pro" class="active" title="Balanced (default)">Pro</button>
+              <button type="button" data-model="max" title="Most accurate — best for handwritten or dense documents">Max</button>
+            </div>
+            <span id="confBadge" class="result-badge hidden"></span>
+          </div>
         </div>
         <div class="card-content">
           <label id="uploadZone" class="upload-zone">
@@ -416,6 +430,7 @@
     let currentFile=null, currentBase64=null, currentResult=null, progInterval=null;
     let currentPdfUrl=null, currentZoom=1;
     let statusInterval=null, glyphInterval=null;
+    let currentModel = 'pro';
     const ALLOWED_TYPES = ['image/png','image/jpeg','image/gif','image/webp','application/pdf'];
     const MAX_UPLOAD_BYTES = 25*1024*1024;
     const EXTRACT_TIMEOUT_MS = 180000;
@@ -553,6 +568,15 @@
       applyZoom(fit > 0 && isFinite(fit) ? fit : 1);
     });
 
+    document.querySelectorAll('#modelPicker button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (btn.classList.contains('active')) return;
+        document.querySelectorAll('#modelPicker button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentModel = btn.dataset.model;
+      });
+    });
+
     fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
     uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
     uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
@@ -599,7 +623,7 @@
         const res = await fetch(API_URL, {
           method:'POST',
           headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({imageBase64:currentBase64, mediaType:currentFile.type}),
+          body: JSON.stringify({imageBase64:currentBase64, mediaType:currentFile.type, model:currentModel}),
           signal: ctrl.signal
         });
         clearTimeout(tout);
